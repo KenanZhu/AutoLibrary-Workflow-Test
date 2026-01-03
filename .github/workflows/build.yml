@@ -62,7 +62,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirement.txt
 
-    - name: Solve ddddocr compatibility
+    - name: Solve ddddocr compatibility and copy model files
       run: |
         $ddddocrPath = python -c "import ddddocr, os; print(os.path.dirname(ddddocr.__file__))"
         Write-Host "ddddocr package location: $ddddocrPath"
@@ -76,10 +76,7 @@ jobs:
           Write-Error "✗ ddddocr __init__.py not found"
           exit 1
         }
-      shell: pwsh
 
-    - name: Copy model files
-      run: |
         if (-not (Test-Path "model")) {
           New-Item -ItemType Directory -Path "model" | Out-Null
           Write-Host "✓ Created model directory"
