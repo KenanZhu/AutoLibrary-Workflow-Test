@@ -297,6 +297,14 @@ jobs:
         echo "$(brew --prefix qt@5)/bin" >> $GITHUB_PATH
       shell: bash
 
+    - name: Set script permissions
+      run: |
+        cd src/gui/batchs
+        chmod +x *.sh
+        echo "Script permissions set:"
+        ls -la *.sh
+      shell: bash
+
     - name: Compile Qt UI files for macOS
       run: |
         cd src/gui/batchs
