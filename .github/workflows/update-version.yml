@@ -1,5 +1,13 @@
 name: Update Version
 
+# This workflow updates version information in 'ALVersionInfo.py' with build metadata.
+# In progress, it will generate two version files, the first one is locate in 'src/gui/ALVersionInfo.py',
+# and the second one is locate in 'src/gui/temp/ALVersionInfo.py'. The first one is use
+# in the release process, it only update the version and tag name. The commit and build infomation
+# is 'local' or 'null'. All of them will finally archive as artifacts.
+#
+# It is triggered when called by the release workflow.
+
 on:
   workflow_call:
     inputs:
@@ -59,11 +67,11 @@ jobs:
         echo "✓ Commit SHA: $COMMIT_SHA"
         echo "✓ Commit Date: $COMMIT_DATE"
 
-    - name: Create build_temp directory
+    - name: Create 'temp' directory
       run: |
-        echo "Creating build_temp directory..."
-        mkdir -p "src/gui/build_temp"
-        echo "✓ build_temp directory created successfully"
+        echo "Creating temp directory..."
+        mkdir -p "src/gui/temp"
+        echo "✓ temp directory created successfully"
 
     - name: Update ALVersionInfo.py with version info
       run: |
@@ -71,7 +79,7 @@ jobs:
         TAG_NAME="${{ steps.get_version.outputs.TAG_NAME }}"
         COMMIT_SHA="${{ steps.get_version.outputs.COMMIT_SHA }}"
         COMMIT_DATE="${{ steps.get_version.outputs.COMMIT_DATE }}"
-        VER_INFO_BUILDFILE="src/gui/build_temp/ALVersionInfo.py"
+        VER_INFO_BUILDFILE="src/gui/temp/ALVersionInfo.py"
         VER_INFO_COMMITFILE="src/gui/ALVersionInfo.py"
         BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
 
@@ -94,6 +102,8 @@ jobs:
           echo "AL_BUILD_DATE = \"${BUILD_DATE}\"  # time zone : UTC"
           echo 'AL_VERSION_FULL = f"{AL_VERSION} ({AL_COMMIT_SHA})"'
         } > "$VER_INFO_BUILDFILE"
+
+        echo "Updating ALVersionInfo.py for release commit..."
         {
           echo '# -*- coding: utf-8 -*-'
           echo ''
@@ -141,7 +151,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: updated-version-info-for-build
-        path: src/gui/build_temp/ALVersionInfo.py
+        path: src/gui/temp/ALVersionInfo.py
         retention-days: 1
 
     - name: Upload modified ALVersionInfo.py ready for commit

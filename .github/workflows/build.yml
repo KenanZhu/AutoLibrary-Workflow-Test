@@ -1,5 +1,10 @@
 name: Build
 
+# This workflow compiles the application for Windows platform using PyInstaller, and
+# archives the built artifacts as 'AutoLibrary.<tag_name>-windows-x86_64.zip'.
+#
+# It is triggered when called by the release workflow.
+
 on:
   workflow_call:
     inputs:
@@ -19,6 +24,10 @@ on:
         description: 'The tag name'
         value: ${{ jobs.build-windows.outputs.tag_name }}
 
+#
+# Build Windows
+#
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -31,6 +40,8 @@ jobs:
       with:
         ref: main
 
+    # here we download the build version of ALVersionInfo.py from artifacts
+    # and replace the committed version
     - name: Download build version of ALVersionInfo.py
       uses: actions/download-artifact@v4
       with:
@@ -79,7 +90,7 @@ jobs:
           (Get-Content $initFile) -replace 'Image\.ANTIALIAS', 'Image.Resampling.LANCZOS' | Set-Content $initFile
           Write-Host "✓ Fixed: Image.ANTIALIAS -> Image.Resampling.LANCZOS"
         } else {
-          Write-Error "✗✗ ddddocr __init__.py not found"
+          Write-Error "✗ ddddocr __init__.py not found"
           exit 1
         }
 
@@ -95,7 +106,7 @@ jobs:
           Write-Host "✓ Copied ONNX model from: $onnxSource"
           Write-Host "✓ ONNX model copied to: $onnxDest"
         } else {
-          Write-Error "✗✗ ONNX model not found in ddddocr package: $onnxSource"
+          Write-Error "✗ ONNX model not found in ddddocr package: $onnxSource"
           exit 1
         }
 
@@ -103,7 +114,7 @@ jobs:
           $fileSize = (Get-Item $onnxDest).Length / 1MB
           Write-Host "✓ Model file verified: $onnxDest (Size: $([math]::Round($fileSize, 2)) MB)"
         } else {
-          Write-Error "✗✗ Failed to copy model file"
+          Write-Error "✗ Failed to copy model file"
           exit 1
         }
       shell: pwsh
@@ -199,7 +210,7 @@ jobs:
           Compress-Archive -Path "dist/$exeName" -DestinationPath $zipName
           Write-Host "✓ Created release archive: $zipName"
         } else {
-          Write-Error "✗✗ Executable not found: dist/$exeName"
+          Write-Error "✗ Executable not found: dist/$exeName"
           Write-Host "Files in dist directory:"
           Get-ChildItem "dist" | ForEach-Object { Write-Host "  - $($_.Name)" }
           exit 1
