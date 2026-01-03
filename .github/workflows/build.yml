@@ -319,7 +319,7 @@ jobs:
 
     - name: Build with PyInstaller for macOS
       run: |
-        pyinstaller Main.spec --onefile --windowed --name "AutoLibrary-${{ steps.get_version.outputs.VERSION }}"
+        pyinstaller src/Main.py --onefile --windowed --name "AutoLibrary-${{ steps.get_version.outputs.VERSION }}"
         ls -la dist/
       shell: bash
 
