@@ -24,6 +24,8 @@ jobs:
   #
 
   update-version:
+    needs:
+      - start
     uses: ./.github/workflows/update-version.yml
     permissions:
       contents: write
@@ -118,6 +120,8 @@ jobs:
   #
 
   end:
+    needs:
+      - release
     runs-on: ubuntu-latest
     steps:
     - name: End release
