@@ -41,6 +41,7 @@ jobs:
 
   commit-release:
     needs:
+      - start
       - update-version
     if: ${{ needs.update-version.outputs.has_changes == 'true' }}
     uses: ./.github/workflows/commit-release.yml
@@ -59,7 +60,7 @@ jobs:
     needs:
       - update-version
       - commit-release
-    if: always() && needs.update-version.result == 'success'
+    if: always() && needs.update-version.result == 'success' && needs.commit-release.result == 'success'
     uses: ./.github/workflows/build.yml
     permissions:
       contents: write
