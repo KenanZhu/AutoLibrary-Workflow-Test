@@ -83,7 +83,7 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        name: AutoLibrary-${{ needs.build.outputs.tag_name }}-windows-x86_64
+        name: AutoLibrary.${{ needs.build.outputs.tag_name }}-windows-x86_64
         path: artifacts/
 
     - name: Create release
@@ -93,7 +93,7 @@ jobs:
         tag_name: ${{ needs.build.outputs.tag_name }}
         name: AutoLibrary ${{ needs.build.outputs.tag_name }}
         files: |
-          artifacts/AutoLibrary-${{ needs.build.outputs.tag_name }}-windows-x86_64.zip
+          artifacts/AutoLibrary.${{ needs.build.outputs.tag_name }}-windows-x86_64.zip
         draft: false
         prerelease: false
         generate_release_notes: true
