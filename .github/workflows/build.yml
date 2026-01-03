@@ -14,14 +14,17 @@ on:
     outputs:
       version:
         description: 'The version number'
-        value: ${{ inputs.version }}
+        value: ${{ jobs.build-windows.outputs.version }}
       tag_name:
         description: 'The tag name'
-        value: ${{ inputs.tag_name }}
+        value: ${{ jobs.build-windows.outputs.tag_name }}
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+      tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4

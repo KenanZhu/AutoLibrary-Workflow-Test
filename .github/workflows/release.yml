@@ -61,6 +61,9 @@ jobs:
     uses: ./.github/workflows/build.yml
     permissions:
       contents: write
+    with:
+      version: ${{ needs.update-version.outputs.version }}
+      tag_name: ${{ needs.update-version.outputs.tag_name }}
 
   #
   # Release :
