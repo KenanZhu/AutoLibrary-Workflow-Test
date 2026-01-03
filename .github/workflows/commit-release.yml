@@ -38,7 +38,7 @@ jobs:
     - name: Download modified file
       uses: actions/download-artifact@v4
       with:
-        name: updated-version-info
+        name: updated-version-info-for-commit
         path: downloaded-file/
 
     - name: Replace file with updated version
