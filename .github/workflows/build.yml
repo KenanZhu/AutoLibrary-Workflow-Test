@@ -73,7 +73,7 @@ jobs:
           (Get-Content $initFile) -replace 'Image\.ANTIALIAS', 'Image.Resampling.LANCZOS' | Set-Content $initFile
           Write-Host "✓ Fixed: Image.ANTIALIAS -> Image.Resampling.LANCZOS"
         } else {
-          Write-Error "✗ ddddocr __init__.py not found"
+          Write-Error "✗✗ ddddocr __init__.py not found"
           exit 1
         }
 
@@ -89,7 +89,7 @@ jobs:
           Write-Host "✓ Copied ONNX model from: $onnxSource"
           Write-Host "✓ ONNX model copied to: $onnxDest"
         } else {
-          Write-Error "✗ ONNX model not found in ddddocr package: $onnxSource"
+          Write-Error "✗✗ ONNX model not found in ddddocr package: $onnxSource"
           exit 1
         }
 
@@ -97,7 +97,7 @@ jobs:
           $fileSize = (Get-Item $onnxDest).Length / 1MB
           Write-Host "✓ Model file verified: $onnxDest (Size: $([math]::Round($fileSize, 2)) MB)"
         } else {
-          Write-Error "✗ Failed to copy model file"
+          Write-Error "✗✗ Failed to copy model file"
           exit 1
         }
       shell: pwsh
@@ -193,7 +193,7 @@ jobs:
           Compress-Archive -Path "dist/$exeName" -DestinationPath $zipName
           Write-Host "✓ Created release archive: $zipName"
         } else {
-          Write-Error "✗ Executable not found: dist/$exeName"
+          Write-Error "✗✗ Executable not found: dist/$exeName"
           Write-Host "Files in dist directory:"
           Get-ChildItem "dist" | ForEach-Object { Write-Host "  - $($_.Name)" }
           exit 1
@@ -206,3 +206,131 @@ jobs:
         name: AutoLibrary.${{ steps.get_version.outputs.TAG_NAME }}-windows-x86_64
         path: |
           ${{ steps.zip_release.outputs.ZIP_PATH }}
+
+
+  build-macos:
+    runs-on: macos-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+      tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Get version info
+      id: get_version
+      run: |
+        version="${{ inputs.version }}"
+        tagName="${{ inputs.tag_name }}"
+
+        echo "TAG_NAME=$tagName" >> $GITHUB_OUTPUT
+        echo "VERSION=$version" >> $GITHUB_OUTPUT
+        echo "✓ Tag: $tagName"
+        echo "✓ Version: $version"
+      shell: bash
+
+    - name: Verify 'ALVersionInfo.py' was updated
+      run: |
+        versionInfoFile="src/gui/ALVersionInfo.py"
+        echo "Verifying $versionInfoFile content:"
+        echo "=================================="
+        cat $versionInfoFile
+        echo "=================================="
+      shell: bash
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirement.txt
+
+    - name: Solve ddddocr compatibility and copy model files
+      run: |
+        ddddocrPath=$(python -c "import ddddocr, os; print(os.path.dirname(ddddocr.__file__))")
+        echo "ddddocr package location: $ddddocrPath"
+
+        initFile="$ddddocrPath/__init__.py"
+        if [ -f "$initFile" ]; then
+          echo "Fixing ddddocr compatibility in: $initFile"
+          sed -i '' 's/Image\.ANTIALIAS/Image.Resampling.LANCZOS/g' "$initFile"
+          echo "✓ Fixed: Image.ANTIALIAS -> Image.Resampling.LANCZOS"
+        else
+          echo "✗✗✗✗ ddddocr __init__.py not found"
+          exit 1
+        fi
+
+        if [ ! -d "model" ]; then
+          mkdir -p model
+          echo "✓ Created model directory"
+        fi
+
+        onnxSource="$ddddocrPath/common.onnx"
+        onnxDest="model/common.onnx"
+        if [ -f "$onnxSource" ]; then
+          cp "$onnxSource" "$onnxDest"
+          echo "✓ Copied ONNX model from: $onnxSource"
+          echo "✓ ONNX model copied to: $onnxDest"
+        else
+          echo "✗✗✗✗ ONNX model not found in ddddocr package: $onnxSource"
+          exit 1
+        fi
+
+        if [ -f "$onnxDest" ]; then
+          fileSize=$(ls -l "$onnxDest" | awk '{print $5}')
+          fileSizeMB=$(echo "scale=2; $fileSize/1024/1024" | bc)
+          echo "✓ Model file verified: $onnxDest (Size: ${fileSizeMB} MB)"
+        else
+          echo "✗✗✗✗ Failed to copy model file"
+          exit 1
+        fi
+      shell: bash
+
+    - name: Install Qt for macOS
+      run: |
+        brew install qt@5
+        echo "$(brew --prefix qt@5)/bin" >> $GITHUB_PATH
+      shell: bash
+
+    - name: Compile Qt UI files for macOS
+      run: |
+        cd src/gui/batchs
+        ./compile_ui.sh
+      shell: bash
+
+    - name: Compile Qt Resource files for macOS
+      run: |
+        cd src/gui/batchs
+        ./compile_rc.sh
+      shell: bash
+
+    - name: Build with PyInstaller for macOS
+      run: |
+        pyinstaller Main.spec --onefile --windowed --name "AutoLibrary-${{ steps.get_version.outputs.VERSION }}"
+        ls -la dist/
+      shell: bash
+
+    - name: Create macOS disk image
+      id: create_dmg
+      run: |
+        version="${{ steps.get_version.outputs.VERSION }}"
+        tagName="${{ steps.get_version.outputs.TAG_NAME }}"
+        appName="AutoLibrary-$version"
+        dmgName="AutoLibrary.$tagName-macos-x86_64.dmg"
+        mkdir -p package_dir
+        cp -r "dist/$appName.app" package_dir/
+        ln -s /Applications package_dir/Applications
+        hdiutil create -volname "$appName" -srcfolder package_dir -ov -format UDZO "$dmgName"
+        echo "DMG_PATH=$dmgName" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Archive macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: AutoLibrary.${{ steps.get_version.outputs.TAG_NAME }}-macos-x86_64
+        path: ${{ steps.create_dmg.outputs.DMG_PATH }}
