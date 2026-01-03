@@ -186,7 +186,7 @@ jobs:
         $exeName = "AutoLibrary-$version.exe"
         $zipName = "AutoLibrary.$tagName-windows-x86_64.zip"
 
-        echo "ZIP_PATH=$zipName >> $env:GITHUB_OUTPUT"
+        echo "ZIP_PATH=$zipName" >> $env:GITHUB_OUTPUT
 
         Write-Host "Looking for executable: dist/$exeName"
         if (Test-Path "dist/$exeName") {
